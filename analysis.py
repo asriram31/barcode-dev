@@ -1,8 +1,6 @@
 from utils.reader import read_file, check_channel_dim
 import os, yaml, time, functools, builtins, nd2
-from binarization import analyze_binarization
-from flow import analyze_optical_flow
-from intensity_distribution_comparison import analyze_intensity_dist
+from analysis_branches import analyze_binarization, analyze_optical_flow, analyze_intensity_dist
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -13,34 +11,31 @@ matplotlib.use('Agg')
 class MyException(Exception):
     pass
 
-def execute_htp(filepath, config_data, fail_file_loc, count, total):
+def analyze_video(filepath, config_data, fail_file_loc, count, total):
     reader_data = config_data['reader']
     _, save_rds, save_visualizations = config_data['writer'].values()
-    accept_dim_channel, accept_dim_im, binarization, channel_select, intensity_dist, optical_flow, verbose = reader_data.values()
-    ib_data = config_data['image_binarization_parameters']
-    of_data = config_data['optical_flow_parameters']
-    id_data = config_data['intensity_distribution_parameters']
-    
+    accept_dim_channel, accept_dim_im, binarization, channel_select, intensity_dist, optical_flow, verbose = reader_data.values()    
     print = functools.partial(builtins.print, flush=True)
     vprint = print if verbose else lambda *a, **k: None
 
-    def check(filename, channel, binarization, optical_flow, intensity_distribution, binarization_params, optical_flow_params, intensity_dist_params, fail_file_loc):
+    def analyze_channel(filename, channel, config_data, fail_file_loc):
+        binarization = config_data["reader"]["binarization"]
+        optical_flow = config_data["reader"]["optical_flow"]
+        intensity_distribution = config_data["reader"]["intensity_distribution"]
+        binarization_params = config_data["image_binarization_parameters"]
+        optical_flow_params = config_data["optical_flow_parameters"]
+        intensity_distribution_params = config_data["intensity_distribution_parameters"]
+        writer_params = config_data["writer"]
         flag = 0
         figure_dir_name = remove_extension(filename) + ' BARCODE Output'
-        fig_channel_dir_name = os.path.join(figure_dir_name, 'Channel ' + str(channel))
-        if not os.path.exists(figure_dir_name):
-            os.makedirs(figure_dir_name)
-        if not os.path.exists(fig_channel_dir_name):
-            os.makedirs(fig_channel_dir_name)
+        fig_channel_dir_name = os.path.join(figure_dir_name, f'Channel {channel}')
+        os.makedirs(figure_dir_name, exist_ok=True)
+        os.makedirs(fig_channel_dir_name, exist_ok=True)
         
         if binarization:
-            thresh_offset = binarization_params['threshold_offset']
-            frame_step = binarization_params['frame_step']
-            pf_eval = binarization_params['percentage_frames_evaluated']
-            binning_factor = 2
             try:
-                binarization_figure, binarization_outputs = analyze_binarization(file, fig_channel_dir_name, channel, thresh_offset, frame_step, pf_eval, binning_factor, save_visualizations, save_rds, verbose)
-            except Exception as e:
+                binarization_figure, binarization_outputs = analyze_binarization(file, fig_channel_dir_name, channel, binarization_params, writer_params, verbose)
+            except Exception as e:  
                 with open(fail_file_loc, "a", encoding="utf-8") as log_file:
                     log_file.write(f"File: {filename}, Module: Binarization, Exception: {str(e)}\n")
                 binarization_figure = None
@@ -49,21 +44,19 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
             binarization_figure = None
             binarization_outputs = [np.nan] * 7
         if optical_flow:
-            downsample = optical_flow_params['downsample']
-            frame_step = optical_flow_params['frame_step']
-            win_size = optical_flow_params['win_size']
-            pf_eval = optical_flow_params['percentage_frames_evaluated']
             # Automatically reads ND2 file metadata for frame interval and micron-pixel-ratio
             if nd2.is_supported_file(filename):
                 with nd2.ND2File(filename) as ndfile:
                     times = ndfile.events(orient = 'list')['Time [s]']
                     exposure_time = np.array([y - x for x, y in pairwise(times)]).mean()
                     um_pix_ratio = 1/(ndfile.voxel_size()[0])
+                    optical_flow_params["exposure_time"] = exposure_time
+                    optical_flow_params["um_pixel_ratio"] = um_pix_ratio
             else:
                 exposure_time = optical_flow_params['exposure_time']
                 um_pix_ratio = optical_flow_params['um_pixel_ratio']
             try:
-                flow_outputs = analyze_optical_flow(file, fig_channel_dir_name, channel, frame_step, downsample, exposure_time, um_pix_ratio, pf_eval, save_visualizations, save_rds, verbose, win_size)
+                flow_outputs = analyze_optical_flow(file, fig_channel_dir_name, channel, optical_flow_params, writer_params, verbose)
             except Exception as e:
                 with open(fail_file_loc, "a", encoding="utf-8") as log_file:
                     log_file.write(f"File: {filename}, Module: Optical Flow, Exception: {str(e)}\n")
@@ -71,12 +64,8 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
         else:
             flow_outputs = [np.nan] * 4
         if intensity_distribution:
-            noise_threshold = intensity_dist_params['noise_threshold']
-            bin_size = intensity_dist_params['bin_size']
-            pf_eval = intensity_dist_params['percentage_frames_evaluated']
-            frame_step = intensity_dist_params['frame_step']
             try:
-                intensity_figure, id_outputs, flag = analyze_intensity_dist(file, fig_channel_dir_name, channel, pf_eval, frame_step, bin_size, noise_threshold, save_visualizations, save_rds, verbose)
+                intensity_figure, id_outputs, flag = analyze_intensity_dist(file, fig_channel_dir_name, channel, intensity_distribution_params, writer_params, verbose)
             except Exception as e:
                 with open(fail_file_loc, "a", encoding="utf-8") as log_file:
                     log_file.write(f"File: {filename}, Module: Intensity Distribution, Exception: {str(e)}\n")
@@ -137,10 +126,10 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
                 continue
             elif check_channel_dim(file[:,:,:,channel]) and accept_dim_channel:
                 vprint('Warning: channel is dim. Accuracy of screening may be limited by this.')
-                results = check(filepath, channel, binarization, optical_flow, intensity_dist, ib_data, of_data, id_data, fail_file_loc)
+                results = analyze_channel(filepath, channel, config_data, fail_file_loc)
                 results[2] = results[2] + 1
             else:
-                results = check(filepath, channel, binarization, optical_flow, intensity_dist, ib_data, of_data, id_data, fail_file_loc)
+                results = analyze_channel(filepath, channel, config_data, fail_file_loc)
             barcode.append(results)
     
     else:
@@ -151,24 +140,24 @@ def execute_htp(filepath, config_data, fail_file_loc, count, total):
         vprint('Channel: ', channel_select)
         if check_channel_dim(file[:,:,:,channel_select]):
             vprint('Warning: channel is dim. Accuracy of screening may be limited by this.')
-            results = check(filepath, channel_select, binarization, optical_flow, intensity_dist, ib_data, of_data, id_data, fail_file_loc)
+            results = analyze_channel(filepath, channel_select, config_data, fail_file_loc)
             results[2] = results[2] + 1 # Indicate dim channel flag present
         else:
-            results = check(filepath, channel_select, binarization, optical_flow, intensity_dist, ib_data, of_data, id_data, fail_file_loc)
+            results = analyze_channel(filepath, channel_select, config_data, fail_file_loc)
         barcode.append(results)
 
     return barcode, count
 
 def remove_extension(filepath):
-    for suffix in [".tif", ".tiff", ".nd2"]:
+    for suffix in (".tif", ".tiff", ".nd2"):
         if filepath.endswith(suffix):
             return filepath.removesuffix(suffix)
     return filepath
 
 def reformat_time(time):
     if time / 3600 > 1:
-            elapsed_hours = int(time // 3600)
-            elapsed_minutes = (time - (elapsed_hours * 3600))/60
+            elapsed_hours = time // 3600
+            elapsed_minutes = (time - (elapsed_hours * 3600))//60
             time = f'{elapsed_hours:.2f} hours, {elapsed_minutes:.2f} minutes'
     elif time / 60 > 1:
         elapsed_minutes = time / 60
@@ -179,22 +168,20 @@ def reformat_time(time):
 
 def process_directory(root_dir, config_data):
     verbose = config_data['reader']['verbose']
-    writer_data = config_data['writer']
-    generate_barcode, _, _ = writer_data.values()
+    generate_barcode = config_data['writer']["generate_barcode"]
     print = functools.partial(builtins.print, flush=True)
     vprint = print if verbose else lambda *a, **k: None
 
     def find_files(folder):
         files = []
-        file_formats = [".nd2", ".tiff", ".tif"]
+        file_formats = (".nd2", ".tiff", ".tif")
         for dirpath, dirnames, filenames in os.walk(folder):
             dirnames[:] = [d for d in dirnames]
             for filename in filenames:
                 if filename.startswith('._'):
                     continue
-                for file_format in file_formats:
-                    if filename.endswith(file_format):
-                        files.append(os.path.join(dirpath, filename))
+                if filename.endswith(file_formats):
+                    files.append(os.path.join(dirpath, filename))
         return files
     
     files = [root_dir] if os.path.isfile(root_dir) else find_files(root_dir)
@@ -217,7 +204,7 @@ def process_directory(root_dir, config_data):
     for file in files:
         start_file_time = time.time()
         try:
-            barcode, file_number = execute_htp(file, config_data, error_filepath, file_number, file_count)
+            barcode, file_number = analyze_video(file, config_data, error_filepath, file_number, file_count)
         except TypeError as e:
             if "BARCODE" in str(e):
                 continue

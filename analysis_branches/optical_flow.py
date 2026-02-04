@@ -2,13 +2,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2 as cv
 import os, csv, functools, builtins
-import matplotlib.ticker as ticker
-import matplotlib.colors as colors
+from matplotlib import colors, ticker
 import matplotlib
 matplotlib.use('Agg')
 from utils import groupAvg, find_analysis_frames
 
-def analyze_optical_flow(file, name, channel, frame_stride, downsample, exposure_time, um_pix_ratio, frame_eval_percent, save_visualizations, save_rds, verbose, winsize = 32):
+def analyze_optical_flow(file: np.ndarray, name: str, channel: int, optical_flow_settings: dict, output_settings: dict, verbose: bool):
+    frame_stride = optical_flow_settings["frame_step"]
+    downsample = optical_flow_settings["downsample"]
+    exposure_time = optical_flow_settings["exposure_time"]
+    um_pix_ratio = optical_flow_settings["um_pixel_ratio"]
+    frame_eval_percent = optical_flow_settings["percentage_frames_evaluated"]
+    winsize = optical_flow_settings["win_size"]
+    save_visualizations = output_settings["save_visualizations"]
+    save_rds = output_settings["save_rds"]
     # Defines print to enable printing only if verbose setting set to True
     print = functools.partial(builtins.print, flush=True)
     vprint = print if verbose else lambda *a, **k: None
