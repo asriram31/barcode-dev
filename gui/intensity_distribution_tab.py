@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk
 
 def create_intensity_distribution_tab(
         notebook: ttk.Notebook,

@@ -1,8 +1,8 @@
 import os
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk
 import numpy as np
-from utils.preview import binarize
+from utils.analysis.image_binarization import binarize
 from utils.reader import load_binarization_frame
 from matplotlib.figure import Figure 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg 
