@@ -1,5 +1,8 @@
 import numpy as np
-from utils import normalize_counts, flatten
+from utils import flatten
+
+def normalize_counts(count): 
+    return count / count.sum()
 
 def mean(values: np.ndarray, probabilities: np.ndarray):
     return np.sum(values * probabilities)
