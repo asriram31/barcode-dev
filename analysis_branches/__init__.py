@@ -1,6 +1,6 @@
-from image_binarization import analyze_binarization
-from optical_flow import analyze_optical_flow
-from intensity_distribution import analyze_intensity_dist
+from analysis_branches.image_binarization import analyze_binarization
+from analysis_branches.optical_flow import analyze_optical_flow
+from analysis_branches.intensity_distribution import analyze_intensity_dist
 
 __all__ = [
     "analyze_binarization",

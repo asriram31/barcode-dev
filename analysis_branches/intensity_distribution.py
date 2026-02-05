@@ -2,7 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv, os, functools, builtins
 from utils import average_largest, find_analysis_frames
-from utils.intensity_distribution import mean, frame_mode, median_skewness, mode_skewness, kurtosis, calc_frame_metric, histogram
+from utils.analysis.intensity_distribution import (
+    mean, frame_mode, median_skewness, mode_skewness, kurtosis, 
+    calc_frame_metric, histogram)
 
 def analyze_intensity_dist(file: np.ndarray, name: str, channel: int, intensity_distribution_settings: dict, output_settings: dict, verbose: bool):
     step_size = intensity_distribution_settings["frame_step"]

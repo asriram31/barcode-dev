@@ -1,9 +1,9 @@
-import sys, yaml, os, argparse, threading
+import sys, yaml, os, threading
 from analysis import process_directory
-from writer import generate_aggregate_csv
+from utils.writer import generate_aggregate_csv
 import tkinter as tk
 from tkinter import *
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, messagebox
 from gui import (create_execution_settings_tab, create_barcode_generation_tab,
     create_image_binarization_tab, create_optical_flow_tab, create_intensity_distribution_tab)
 
@@ -221,7 +221,6 @@ def main ():
                         return
                     dir_name = dir_path if dir_path else file_path 
                     config_data = set_config_data(gui_config_data)
-                    print(config_data)
 
                     #print directory name 
                     try:

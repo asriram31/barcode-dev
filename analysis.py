@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from itertools import pairwise
-from writer import write_file, generate_aggregate_csv
+from utils.writer import write_file, generate_aggregate_csv
 matplotlib.use('Agg')
 
 class MyException(Exception):
@@ -176,7 +176,6 @@ def process_directory(root_dir, config_data):
         files = []
         file_formats = (".nd2", ".tiff", ".tif")
         for dirpath, dirnames, filenames in os.walk(folder):
-            dirnames[:] = [d for d in dirnames]
             for filename in filenames:
                 if filename.startswith('._'):
                     continue

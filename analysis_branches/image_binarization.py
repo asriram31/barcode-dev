@@ -4,15 +4,10 @@ import matplotlib.ticker as ticker
 import csv, os, functools, builtins
 from skimage.measure import label, regionprops
 from scipy import ndimage
-from utils import inv, groupAvg, average_largest, find_analysis_frames
+from utils import groupAvg, average_largest, find_analysis_frames
+from utils.analysis.image_binarization import binarize, inv
 import matplotlib
 matplotlib.use('Agg')
-
-def binarize(frame: np.ndarray, offset_threshold: float) -> np.ndarray:
-    avg_intensity = np.mean(frame)
-    threshold = avg_intensity * (1 + offset_threshold)
-    new_frame = np.where(frame < threshold, 0, 1)
-    return new_frame
 
 def check_span(frame: np.ndarray):
     def check_connected(frame: np.ndarray, axis: int = 0):
