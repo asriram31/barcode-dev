@@ -2,6 +2,7 @@ import os
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
+from utils import groupAvg
 from utils.analysis.image_binarization import binarize
 from utils.reader import load_binarization_frame
 from matplotlib.figure import Figure 
@@ -152,7 +153,7 @@ def create_image_binarization_tab(
 
         #show down-sampled binarized 
         offset = config_data["gui_binarization"]["threshold_offset"].get()
-        bin_arr = binarize(img, offset)
+        bin_arr = groupAvg(binarize(img, offset), 2, True)
         small_bin = bin_arr[::scale, ::scale] 
         ax_bin.clear() 
         ax_bin.imshow(small_bin, cmap='gray', interpolation='nearest') 
@@ -163,6 +164,7 @@ def create_image_binarization_tab(
 
     def load_preview_frame(*args):
         #load first frame of selected file
+        channel = 0 if config_data["gui_execution"]["channels"].get() else config_data["gui_execution"]["channel_selection"].get()
         if config_data["gui_execution"]["mode"].get()=="dir":
             dir_path = config_data["gui_execution"]["dir_path"].get()
             sample = config_data["gui_binarization"]["sample_file"].get() 
@@ -172,13 +174,13 @@ def create_image_binarization_tab(
                 return 
             path = os.path.join(dir_path, sample) 
         else: 
-            path = config_data["gui_execution"]["file_path"].get() 
+            path = config_data["gui_execution"]["file_path"].get()
         if not path:
             preview_data["frame"] = None
             update_preview()
             return
         try:
-            preview_data["frame"] = load_binarization_frame(path)
+            preview_data["frame"] = load_binarization_frame(path, channel)
         except Exception as e:
             print(f"[Preview] couldn't load first frame: {e}")
             preview_data["frame"] = None
@@ -187,6 +189,8 @@ def create_image_binarization_tab(
     # whenever the user picks a new file, reload the first frame
     config_data["gui_execution"]["file_path"].trace_add("write", load_preview_frame)
     config_data["gui_binarization"]["sample_file"].trace_add("write", load_preview_frame) 
+    config_data["gui_execution"]["channels"].trace_add("write", load_preview_frame)
+    config_data["gui_execution"]["channel_selection"].trace_add("write", load_preview_frame)
     # whenever threshold changes, re-bin & redraw
     config_data["gui_binarization"]["threshold_offset"].trace_add("write", update_preview)
 

@@ -14,7 +14,9 @@ class MyException(Exception):
 def analyze_video(filepath, config_data, fail_file_loc, count, total):
     reader_data = config_data['reader']
     _, save_rds, save_visualizations = config_data['writer'].values()
-    accept_dim_channel, accept_dim_im, binarization, channel_select, intensity_dist, optical_flow, verbose = reader_data.values()    
+    accept_dim_channel, accept_dim_im = reader_data["accept_dim_channels"], reader_data["accept_dim_images"]
+    channel_select = reader_data["channel_select"]
+    verbose = reader_data["verbose"]
     print = functools.partial(builtins.print, flush=True)
     vprint = print if verbose else lambda *a, **k: None
 
@@ -44,17 +46,6 @@ def analyze_video(filepath, config_data, fail_file_loc, count, total):
             binarization_figure = None
             binarization_outputs = [np.nan] * 7
         if optical_flow:
-            # Automatically reads ND2 file metadata for frame interval and micron-pixel-ratio
-            if nd2.is_supported_file(filename):
-                with nd2.ND2File(filename) as ndfile:
-                    times = ndfile.events(orient = 'list')['Time [s]']
-                    exposure_time = np.array([y - x for x, y in pairwise(times)]).mean()
-                    um_pix_ratio = 1/(ndfile.voxel_size()[0])
-                    optical_flow_params["exposure_time"] = exposure_time
-                    optical_flow_params["um_pixel_ratio"] = um_pix_ratio
-            else:
-                exposure_time = optical_flow_params['exposure_time']
-                um_pix_ratio = optical_flow_params['um_pixel_ratio']
             try:
                 flow_outputs = analyze_optical_flow(file, fig_channel_dir_name, channel, optical_flow_params, writer_params, verbose)
             except Exception as e:
@@ -101,9 +92,21 @@ def analyze_video(filepath, config_data, fail_file_loc, count, total):
         result = non_barcode_params + binarization_outputs + id_outputs + flow_outputs        
         vprint('Channel Screening Completed')
         return result
-    
     try:
         counts = [count, total]
+        # Automatically reads ND2 file metadata for frame interval and micron-pixel-ratio
+        if nd2.is_supported_file(filepath):
+            try:
+                with nd2.ND2File(filepath) as ndfile:
+                    times = ndfile.events(orient = 'list')['Time [s]']
+                    exposure_time = np.array([y - x for x, y in pairwise(times)]).mean()
+                    um_pix_ratio = ndfile.voxel_size()[0]
+                    config_data["optical_flow_parameters"]["exposure_time"] = round(float(exposure_time), 4)
+                    config_data["optical_flow_parameters"]["um_pixel_ratio"] = round(um_pix_ratio, 3)
+                    vprint(f"Extracted ND2 File Metadata: Frame Interval = {exposure_time:.4f}s, Micron-Pixel Ratio = {um_pix_ratio:.3f}")
+            except:
+                exposure_time = config_data["optical_flow_parameters"]['exposure_time']
+                um_pix_ratio = config_data["optical_flow_parameters"]['um_pixel_ratio']
         file = read_file(filepath, counts, accept_dim_im)
         count, total = counts
     except TypeError as e:
