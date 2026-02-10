@@ -33,7 +33,7 @@ jobs:
             script-name: main.py
             mode: app
             enable-plugins: tk-inter
-            include-package: imageio matplotlib.backends.backend_svg
+            include-package: imageio, matplotlib.backends.backend_svg
             disable-console: true
             output-file: "BARCODE"
 
