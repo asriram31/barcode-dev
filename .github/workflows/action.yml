@@ -7,7 +7,7 @@ jobs:
     build:
         strategy:
             matrix:
-                os: [macos-latest, bunutu-latest, windows-latest]
+                os: [macos-latest, ubuntu-latest, windows-latest]
         runs-on: ${{ matrix.os }}
         steps:
         - name: Check-out repository
@@ -35,8 +35,8 @@ jobs:
             enable-plugins: tk-inter
             include-package: imageio
             include-module: matplotlib.backends.backend_svg
-            windows-console-mode: disable
             output-file: BARCODE
+            macos-app-name: BARCODE.app
             mingw64: true
 
 
@@ -48,5 +48,12 @@ jobs:
                 build/*.exe
                 build/*.bin
                 build/*.app/**/*
-                build/*.dist/**/*
             include-hidden-files: true
+
+        - name: Create Release
+          uses: actions/create-release@v1
+          with:
+            draft: false
+            prerelease: false
+            release_name: 'BARCODE v1.0'
+            tag_name: barcode-software-v1.0
