@@ -57,3 +57,5 @@ jobs:
             prerelease: false
             release_name: 'BARCODE v1.0'
             tag_name: barcode-software-v1.0
+          env:
+            GITHUB_TOKEN: ${{ github.token }}
