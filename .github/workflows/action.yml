@@ -55,7 +55,7 @@ jobs:
           with:
             draft: false
             prerelease: false
-            release_name: 'BARCODE v1.0'
-            tag_name: barcode-software-v1.0
+            release_name: 'BARCODE v1.0 - ${{ runner.os }} Build'
+            tag_name: barcode-software-v1.0-${{ runner.os }}
           env:
             GITHUB_TOKEN: ${{ github.token }}
