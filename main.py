@@ -187,7 +187,7 @@ def main ():
         #create a thread to run background tasks 
         def worker(): 
             try: 
-                toggle_barcode_generation = (gui_config_data["gui_execution"]["mode"] == "agg")
+                toggle_barcode_generation = (gui_config_data["gui_execution"]["mode"].get() == "agg")
                 if toggle_barcode_generation:
                     barcode_generation_settings = gui_config_data["gui_barcode"]
                     if len(barcode_generation_settings["csv_paths_list"]) == 0:
@@ -196,7 +196,7 @@ def main ():
                     if not barcode_generation_settings["combined_location"].get():
                         messagebox.showerror("Error", "No aggregate location specified.")
                         return
-                    files = barcode_generation_settings["csv_paths"] 
+                    files = barcode_generation_settings["csv_paths_list"] 
                     combined_csv_loc = barcode_generation_settings["combined_location"].get()
                     gen_barcode = barcode_generation_settings["generate_agg_barcode"].get()
                     sort_choice = None if barcode_generation_settings["sort"].get() =='Default' else barcode_generation_settings["sort"].get()
