@@ -52,6 +52,7 @@ jobs:
 
         - name: Create Release
           uses: actions/create-release@v1
+          id: create_release
           with:
             draft: false
             prerelease: false
@@ -59,3 +60,13 @@ jobs:
             tag_name: barcode-software-v1.0-${{ runner.os }}
           env:
             GITHUB_TOKEN: ${{ github.token }}
+
+        - name: Upload Release Artifact
+          uses: actions/upload-release-asset@v1
+          with: 
+            upload_url: ${{ steps.create_release.outputs.output_url }}
+            asset_path: ./barcode-software-v1.0-${{ runner.os }}.zip
+            asset_name: barcode-software-v1.0-${{ runner.os }}.zip
+            asset_content_type: application/zip
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
